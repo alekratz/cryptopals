@@ -6,7 +6,7 @@ use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg
 use std::fs;
 
 fn main() {
-    const ALL_CHALLENGES: &'static [&'static str] = &["c1", "c2", "c3"];
+    const ALL_CHALLENGES: &'static [&'static str] = &["c1", "c2", "c3", "c4"];
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
@@ -21,9 +21,17 @@ fn main() {
             Arg::with_name("corpus")
                 .long("corpus")
                 .takes_value(true)
-                .value_name("CORPUS")
+                .value_name("FILE")
                 .default_value("corpus.txt")
                 .help("The file to use to create an ASCII frequency model."),
+        )
+        .arg(
+            Arg::with_name("c4_input")
+                .long("c4-input")
+                .takes_value(true)
+                .value_name("FILE")
+                .default_value("4.txt")
+                .help("The input for challenge 4."),
         )
         .get_matches();
 
@@ -41,6 +49,13 @@ fn main() {
             "c1" => Box::new(C1::default()),
             "c2" => Box::new(C2::default()),
             "c3" => Box::new(C3::new(&ascii_frequencies)),
+            "c4" => {
+                let inputs = fs::read_to_string(matches.value_of("c4_input").unwrap()).unwrap()
+                    .split("\n")
+                    .map(String::from)
+                    .collect();
+                Box::new(C4::new(&ascii_frequencies, inputs))
+            },
             _ => {
                 println!("unknown challenge {}", challenge);
                 continue;
@@ -174,6 +189,67 @@ impl Challenge for C3<'_> {
                 (key, frequency_score(&message, self.frequencies), message)
             })
             .collect();
+        frequencies
+            .sort_unstable_by(|(_, score1, _), (_, score2, _)| score1.partial_cmp(score2).unwrap());
+        let (key, score, message) = frequencies.remove(0);
+        self.key = key;
+        self.score = score;
+        self.result = message.iter().map(|v| *v as char).collect();
+        self.success = Some(&self.result == Self::output());
+    }
+
+    fn finish_message(&self) -> Option<String> {
+        Some(format!(
+            "Encoded message with key {} and score {:.4}: {:?}",
+            self.key, self.score, self.result
+        ))
+    }
+
+    fn success(&self) -> Option<bool> { self.success }
+}
+
+struct C4<'fmap> {
+    frequencies: &'fmap FrequencyMap,
+    inputs: Vec<String>,
+    success: Option<bool>,
+    key: u8,
+    score: f64,
+    result: String,
+}
+
+impl<'fmap> C4<'fmap> {
+    fn new(frequencies: &'fmap FrequencyMap, inputs: Vec<String>) -> Self {
+        C4 {
+            frequencies,
+            inputs,
+            success: None,
+            key: Default::default(),
+            score: Default::default(),
+            result: Default::default(),
+        }
+    }
+
+    fn output() -> &'static str {
+        "Now that the party is jumping\n"
+    }
+}
+
+impl Challenge for C4<'_> {
+    fn name(&self) -> &'static str {
+        "Detect single-character XOR"
+    }
+
+    fn run(&mut self) {
+        let mut frequencies = Vec::new();
+        
+        for input in self.inputs.iter() {
+            let input_bytes = hex_bytes(input);
+            frequencies.extend((1u8..=255u8)
+                .map(|key| {
+                    let message = apply_key(&input_bytes, &[key]);
+                    (key, frequency_score(&message, self.frequencies), message)
+                }));
+        }
         frequencies
             .sort_unstable_by(|(_, score1, _), (_, score2, _)| score1.partial_cmp(score2).unwrap());
         let (key, score, message) = frequencies.remove(0);
