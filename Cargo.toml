@@ -1,0 +1,9 @@
+[package]
+name = "cryptopals"
+version = "0.1.0"
+authors = ["Alek Ratzloff <alekratz@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+clap = "2.33.0"
+base64 = "0.10.1"
