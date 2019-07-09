@@ -74,12 +74,8 @@ struct C1 {
 }
 
 impl C1 {
-    const fn input() -> &'static str {
-        "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d"
-    }
-    const fn output() -> &'static str {
-        "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t"
-    }
+    const INPUT: &'static str = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
+    const OUTPUT: &'static str = "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t";
 }
 
 impl Challenge for C1 {
@@ -88,16 +84,16 @@ impl Challenge for C1 {
     }
 
     fn run(&mut self) {
-        let bytes = hex_bytes(Self::input());
+        let bytes = hex_bytes(Self::INPUT);
         self.result = bytes_b64(&bytes);
-        self.success = Some(&self.result == Self::output());
+        self.success = Some(&self.result == Self::OUTPUT);
     }
 
     fn fail_message(&self) -> Option<String> {
         Some(format!(
             "Result: {} (expected {})",
             self.result,
-            Self::output()
+            Self::OUTPUT
         ))
     }
 
@@ -113,12 +109,8 @@ struct C2 {
 }
 
 impl C2 {
-    const fn input() -> &'static str {
-        "1c0111001f010100061a024b53535009181c"
-    }
-    const fn output() -> &'static str {
-        "746865206b696420646f6e277420706c6179"
-    }
+    const INPUT: &'static str = "1c0111001f010100061a024b53535009181c";
+    const OUTPUT: &'static str = "746865206b696420646f6e277420706c6179";
 }
 
 impl Challenge for C2 {
@@ -128,11 +120,11 @@ impl Challenge for C2 {
 
     fn run(&mut self) {
         const KEY: &str = "686974207468652062756c6c277320657965";
-        self.result = apply_key(&hex_bytes(Self::input()), &hex_bytes(KEY))
+        self.result = apply_key(&hex_bytes(Self::INPUT), &hex_bytes(KEY))
             .iter()
             .map(|byte| format!("{:x}", byte))
             .collect();
-        self.success = Some(&self.result == Self::output());
+        self.success = Some(&self.result == Self::OUTPUT);
     }
 
     fn success(&self) -> Option<bool> {
@@ -143,7 +135,7 @@ impl Challenge for C2 {
         Some(format!(
             "Result: {} (expected {})",
             self.result,
-            Self::output()
+            Self::OUTPUT
         ))
     }
 }
@@ -167,13 +159,8 @@ impl<'fmap> C3<'fmap> {
         }
     }
 
-    fn input() -> &'static str {
-        "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
-    }
-
-    fn output() -> &'static str {
-        "Cooking MC's like a pound of bacon"
-    }
+    const INPUT: &'static str = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+    const OUTPUT: &'static str = "Cooking MC's like a pound of bacon";
 }
 
 impl Challenge for C3<'_> {
@@ -182,7 +169,7 @@ impl Challenge for C3<'_> {
     }
 
     fn run(&mut self) {
-        let input_bytes = hex_bytes(Self::input());
+        let input_bytes = hex_bytes(Self::INPUT);
         let mut frequencies: Vec<_> = (0u8..=255u8)
             .map(|key| {
                 let message = apply_key(&input_bytes, &[key]);
@@ -195,7 +182,7 @@ impl Challenge for C3<'_> {
         self.key = key;
         self.score = score;
         self.result = message.iter().map(|v| *v as char).collect();
-        self.success = Some(&self.result == Self::output());
+        self.success = Some(&self.result == Self::OUTPUT);
     }
 
     fn finish_message(&self) -> Option<String> {
@@ -229,9 +216,7 @@ impl<'fmap> C4<'fmap> {
         }
     }
 
-    fn output() -> &'static str {
-        "Now that the party is jumping\n"
-    }
+    const OUTPUT: &'static str = "Now that the party is jumping\n";
 }
 
 impl Challenge for C4<'_> {
@@ -256,7 +241,7 @@ impl Challenge for C4<'_> {
         self.key = key;
         self.score = score;
         self.result = message.iter().map(|v| *v as char).collect();
-        self.success = Some(&self.result == Self::output());
+        self.success = Some(&self.result == Self::OUTPUT);
     }
 
     fn finish_message(&self) -> Option<String> {
