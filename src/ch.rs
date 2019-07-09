@@ -19,10 +19,8 @@ pub trait Challenge {
             },
         }
 
-        if self.success().is_some() {
-            if let Some(message) = self.finish_message() {
-                println!("    {}", message);
-            }
+        if let Some(message) = self.finish_message() {
+            println!("    {}", message);
         }
     }
     fn success_message(&self) -> Option<String> { None }
