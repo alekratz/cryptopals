@@ -6,7 +6,7 @@ use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg
 use std::fs;
 
 fn main() {
-    const ALL_CHALLENGES: &'static [&'static str] = &["c1", "c2", "c3", "c4"];
+    const ALL_CHALLENGES: &'static [&'static str] = &["c1", "c2", "c3", "c4", "c5"];
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
@@ -56,6 +56,7 @@ fn main() {
                     .collect();
                 Box::new(C4::new(&ascii_frequencies, inputs))
             },
+            "c5" => Box::new(C5::default()),
             _ => {
                 println!("unknown challenge {}", challenge);
                 continue;
@@ -252,4 +253,36 @@ impl Challenge for C4<'_> {
     }
 
     fn success(&self) -> Option<bool> { self.success }
+}
+
+#[derive(Default)]
+struct C5 {
+    success: Option<bool>,
+    result: String,
+}
+
+impl C5 {
+    const INPUT: &'static str = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal";
+    const OUTPUT: &'static str = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f";
+    const KEY: &'static str = "ICE";
+}
+
+impl Challenge for C5 {
+    fn name(&self) -> &'static str {
+        "Repeating-key XOR"
+    }
+
+    fn run(&mut self) {
+        let key: Vec<_> = Self::KEY.chars().map(|c| c as u8).collect();
+        self.result = bytes_hex(&apply_key(&Self::INPUT.bytes().collect::<Vec<_>>(), &key));
+        self.success = Some(self.result == Self::OUTPUT)
+    }
+
+    fn fail_message(&self) -> Option<String> {
+        Some(format!("Result: {:?} (expected {:?})", self.result, Self::OUTPUT))
+    }
+
+    fn success(&self) -> Option<bool> {
+        self.success
+    }
 }

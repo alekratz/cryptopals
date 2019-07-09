@@ -3,6 +3,12 @@ use std::{collections::HashMap, slice, str};
 
 pub type FrequencyMap = HashMap<u8, f64>;
 
+pub fn bytes_hex(bytes: &[u8]) -> String {
+    bytes.iter()
+        .map(|byte| format!("{:02x}", byte))
+        .collect()
+}
+
 pub fn hex_bytes(s: &str) -> Vec<u8> {
     let odd_count = s.len() % 2 == 1;
     let mut result = Vec::with_capacity((s.len() + 1) / 2);
