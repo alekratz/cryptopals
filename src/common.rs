@@ -3,10 +3,12 @@ use std::{collections::HashMap, slice, str};
 
 pub type FrequencyMap = HashMap<u8, f64>;
 
+pub fn bytes_ascii(bytes: &[u8]) -> String {
+    bytes.iter().copied().map(|b| b as char).collect()
+}
+
 pub fn bytes_hex(bytes: &[u8]) -> String {
-    bytes.iter()
-        .map(|byte| format!("{:02x}", byte))
-        .collect()
+    bytes.iter().map(|byte| format!("{:02x}", byte)).collect()
 }
 
 pub fn hex_bytes(s: &str) -> Vec<u8> {
@@ -30,16 +32,17 @@ pub fn bytes_b64(bytes: &[u8]) -> String {
     base64::encode(bytes)
 }
 
+pub fn b64_bytes(b64: &str) -> Vec<u8> {
+    base64::decode(b64).expect("invalid base64")
+}
+
 pub fn byte_frequencies(bytes: &[u8]) -> FrequencyMap {
     let mut counts = HashMap::new();
     for b in bytes.iter().copied() {
         let count = counts.entry(b).or_insert(0);
         *count += 1;
     }
-    let max_count = *counts.iter()
-        .map(|(_, v)| v)
-        .max()
-        .unwrap();
+    let max_count = *counts.iter().map(|(_, v)| v).max().unwrap();
     counts
         .into_iter()
         .map(|(k, v)| (k, (v as f64) / (max_count as f64)))
@@ -65,10 +68,28 @@ pub fn apply_key(bytes: &[u8], key: &[u8]) -> Vec<u8> {
         .collect()
 }
 
+pub fn hamming_distance(a: &[u8], b: &[u8]) -> u32 {
+    a.iter()
+        .zip(b.iter())
+        .map(|(a, b)| (*a ^ *b).count_ones())
+        .sum::<u32>() + ((a.len() as isize) - (b.len() as isize)).abs() as u32 * 8
+}
+
 #[test]
 fn test_hex_digits() {
     assert_eq!(
         hex_bytes("0011223344").as_slice(),
         &[0, 0x11, 0x22, 0x33, 0x44]
+    );
+}
+
+#[test]
+fn test_hamming_distance() {
+    assert_eq!(
+        hamming_distance(
+            &"this is a test".bytes().collect::<Vec<_>>(),
+            &"wokka wokka!!!".bytes().collect::<Vec<_>>()
+        ),
+        37
     );
 }
