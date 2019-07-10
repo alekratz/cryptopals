@@ -60,6 +60,17 @@ pub fn frequency_score(bytes: &[u8], baseline: &FrequencyMap) -> f64 {
         .sum()
 }
 
+pub fn best_single_byte_key(bytes: &[u8], frequency_map: &FrequencyMap) -> u8 {
+    let mut key_scores = Vec::new();
+    for key in 1 ..= 255 {
+        let message = apply_key(bytes, &[key]);
+        let score = frequency_score(&message, frequency_map);
+        key_scores.push((key, score));
+    }
+    key_scores.sort_unstable_by(|(_, s1), (_, s2)| s1.partial_cmp(s2).unwrap());
+    key_scores[0].0
+}
+
 pub fn apply_key(bytes: &[u8], key: &[u8]) -> Vec<u8> {
     bytes
         .iter()

@@ -1,64 +1,53 @@
 mod ch;
 mod common;
 
+use structopt::StructOpt;
 use crate::{ch::*, common::*};
-use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
-use std::{collections::HashMap, fs};
+use std::{collections::HashMap, fs, path::PathBuf};
+
+#[derive(StructOpt, Debug)]
+struct Opt {
+    #[structopt(name="CHALLENGE")]
+    /// All challenges to run. If omitted, all challenges are run.
+    challenges: Vec<String>,
+
+    #[structopt(long="corpus", default_value="inputs/corpus.txt", parse(from_os_str))]
+    /// The path to the corpus to use for English character frequency.
+    corpus: PathBuf,
+
+    #[structopt(long="c4-input", default_value="inputs/4.txt", parse(from_os_str))]
+    /// The file containing the input for Challenge 4.
+    c4_input: PathBuf,
+
+    #[structopt(long="c6-input", default_value="inputs/6.txt", parse(from_os_str))]
+    /// The file containing the input for Challenge 6.
+    c6_input: PathBuf,
+
+    #[structopt(long="c6-output", default_value="outputs/6.txt", parse(from_os_str))]
+    /// The file containing the expected output for Challenge 6.
+    c6_output: PathBuf,
+}
 
 fn main() {
     const ALL_CHALLENGES: &'static [&'static str] = &["c1", "c2", "c3", "c4", "c5", "c6"];
-    let matches = App::new(crate_name!())
-        .version(crate_version!())
-        .author(crate_authors!())
-        .about(crate_description!())
-        .arg(
-            Arg::with_name("CHALLENGES")
-                .help("The challenges to complete. If not specified, all challenges are run.")
-                .possible_values(ALL_CHALLENGES)
-                .multiple(true),
-        )
-        .arg(
-            Arg::with_name("corpus")
-                .long("corpus")
-                .takes_value(true)
-                .value_name("FILE")
-                .default_value("corpus.txt")
-                .help("The file to use to create an ASCII frequency model."),
-        )
-        .arg(
-            Arg::with_name("c4_input")
-                .long("c4-input")
-                .takes_value(true)
-                .value_name("FILE")
-                .default_value("4.txt")
-                .help("The input for challenge 4."),
-        )
-        .arg(
-            Arg::with_name("c6_input")
-                .long("c6-input")
-                .takes_value(true)
-                .value_name("FILE")
-                .default_value("6.txt")
-                .help("The input for challenge 6."),
-        )
-        .get_matches();
 
+    let opt = Opt::from_args();
     let ascii_frequencies: FrequencyMap =
-        { byte_frequencies(&fs::read(matches.value_of("corpus").unwrap()).unwrap()) };
+        { byte_frequencies(&fs::read(&opt.corpus).unwrap()) };
 
-    let challenges = if let Some(challenges) = matches.values_of("CHALLENGES") {
-        challenges.collect()
+    let challenges = if opt.challenges.is_empty() {
+        ALL_CHALLENGES.iter().map(ToString::to_string).collect()
     } else {
-        ALL_CHALLENGES.to_vec()
+        opt.challenges
     };
 
     for challenge in challenges {
-        let mut ch: Box<dyn Challenge> = match challenge {
+        let mut ch: Box<dyn Challenge> = match challenge.as_str() {
             "c1" => Box::new(C1::default()),
             "c2" => Box::new(C2::default()),
             "c3" => Box::new(C3::new(&ascii_frequencies)),
             "c4" => {
-                let inputs = fs::read_to_string(matches.value_of("c4_input").unwrap())
+                let inputs = fs::read_to_string(&opt.c4_input)
                     .unwrap()
                     .split("\n")
                     .map(String::from)
@@ -67,10 +56,12 @@ fn main() {
             }
             "c5" => Box::new(C5::default()),
             "c6" => {
-                let inputs = fs::read_to_string(matches.value_of("c6_input").unwrap())
+                let input = fs::read_to_string(&opt.c6_input)
                     .unwrap()
                     .replace("\n", "");
-                Box::new(C6::new(&ascii_frequencies, inputs))
+                let output = fs::read_to_string(&opt.c6_output)
+                    .unwrap();
+                Box::new(C6::new(&ascii_frequencies, input, output))
             }
             _ => {
                 println!("unknown challenge {}", challenge);
@@ -312,25 +303,25 @@ impl Challenge for C5 {
 }
 
 struct C6<'fmap> {
+    success: Option<bool>,
     frequencies: &'fmap FrequencyMap,
     input: String,
-    success: Option<bool>,
+    output: String,
     //key_size: usize,
     //score: f64,
 }
 
 impl<'fmap> C6<'fmap> {
-    fn new(frequencies: &'fmap FrequencyMap, input: String) -> Self {
+    fn new(frequencies: &'fmap FrequencyMap, input: String, output: String) -> Self {
         C6 {
+            success: None,
             frequencies,
             input,
-            success: None,
+            output,
             //key_size: Default::default(),
             //score: Default::default(),
         }
     }
-
-    const OUTPUT: &'static str = "I\'m back and I\'m ringin\' the bell \nA rockin\' on the mike while the fly girls yell \nIn ecstasy in the back of me \nWell that\'s my DJ Deshay cuttin\' all them Z\'s \nHittin\' hard and the girlies goin\' crazy \nVanilla\'s on the mike, man I\'m not lazy. \n\nI\'m lettin\' my drug kick in \nIt controls my mouth and I begin \nTo just let it flow, let my concepts go \nMy posse\'s to the side yellin\', Go Vanilla Go! \n\nSmooth \'cause that\'s the way I will be \nAnd if you don\'t give a damn, then \nWhy you starin\' at me \nSo get off \'cause I control the stage \nThere\'s no dissin\' allowed \nI\'m in my own phase \nThe girlies sa y they love me and that is ok \nAnd I can dance better than any kid n\' play \n\nStage 2 -- Yea the one ya\' wanna listen to \nIt\'s off my head so let the beat play through \nSo I can funk it up and make it sound good \n1-2-3 Yo -- Knock on some wood \nFor good luck, I like my rhymes atrocious \nSupercalafragilisticexpialidocious \nI\'m an effect and that you can bet \nI can take a fly girl and make her wet. \n\nI\'m like Samson -- Samson to Delilah \nThere\'s no denyin\', You can try to hang \nBut you\'ll keep tryin\' to get my style \nOver and over, practice makes perfect \nBut not if you\'re a loafer. \n\nYou\'ll get nowhere, no place, no time, no girls \nSoon -- Oh my God, homebody, you probably eat \nSpaghetti with a spoon! Come on and say it! \n\nVIP. Vanilla Ice yep, yep, I\'m comin\' hard like a rhino \nIntoxicating so you stagger like a wino \nSo punks stop trying and girl stop cryin\' \nVanilla Ice is sellin\' and you people are buyin\' \n\'Cause why the freaks are jockin\' like Crazy Glue \nMovin\' and groovin\' trying to sing along \nAll through the ghetto groovin\' this here song \nNow you\'re amazed by the VIP posse. \n\nSteppin\' so hard like a German Nazi \nStartled by the bases hittin\' ground \nThere\'s no trippin\' on mine, I\'m just gettin\' down \nSparkamatic, I\'m hangin\' tight like a fanatic \nYou trapped me once and I thought that \nYou might have it \nSo step down and lend me your ear \n\'89 in my time! You, \'90 is my year. \n\nYou\'re weakenin\' fast, YO! and I can tell it \nYour body\'s gettin\' hot, so, so I can smell it \nSo don\'t be mad and don\'t be sad \n\'Cause the lyrics belong to ICE, You can call me Dad \nYou\'re pitchin\' a fit, so step back and endure \nLet the witch doctor, Ice, do the dance to cure \nSo come up close and don\'t be square \nYou wanna battle me -- Anytime, anywhere \n\nYou thought that I was weak, Boy, you\'re dead wrong \nSo come on, everybody and sing this song \n\nSay -- Play that funky music Say, go white boy, go white boy go \nplay that funky music Go white boy, go white boy, go \nLay down and boogie and play that funky music till you die. \n\nPlay that funky music Come on, Come on, let me hear \nPlay that funky music white boy you say it, say it \nPlay that funky music A little louder now \nPlay that funky music, white boy Come on, Come on, Come on \nPlay that funky music \n";
 }
 
 impl Challenge for C6<'_> {
@@ -344,6 +335,7 @@ impl Challenge for C6<'_> {
         const MAX_CANDIDATES: usize = 3;
         let input = b64_bytes(&self.input);
         let mut distances = HashMap::new();
+        assert_eq!(input.len(), self.output.len(), "input length (left) is not the same as output length (right) for challenge 6");
 
         // Step 1: try to infer the key size by finding the smallest average hamming distance between N blocks of M size
         //
@@ -411,13 +403,7 @@ impl Challenge for C6<'_> {
             let mut final_key = Vec::new();
             // For every block, find the best single-byte key.
             for block in blocks.iter() {
-                let mut scores = Vec::new();
-                for key in 1..=255 {
-                    let message = apply_key(block, &[key]);
-                    scores.push((key, frequency_score(&message, self.frequencies)));
-                }
-                scores.sort_unstable_by(|(_, s1), (_, s2)| s1.partial_cmp(s2).unwrap());
-                let (key, _) = scores.remove(0);
+                let key = best_single_byte_key(block, self.frequencies);
                 final_key.push(key);
             }
 
@@ -433,7 +419,7 @@ impl Challenge for C6<'_> {
         key_length_scores.sort_unstable_by(|(_, _, s1), (_, _, s2)| s1.partial_cmp(s2).unwrap());
         let (_key_size, message, _score) = key_length_scores.remove(0);
 
-        self.success = Some(message == Self::OUTPUT);
+        self.success = Some(message == self.output);
         //self.key_size = key_size;
         //self.score = score;
     }

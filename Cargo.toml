@@ -5,5 +5,5 @@ authors = ["Alek Ratzloff <alekratz@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-clap = "2.33.0"
 base64 = "0.10.1"
+structopt = "0.2"
